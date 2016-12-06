@@ -47,7 +47,6 @@ void SinkRxTrace(Ptr<const Packet> pkt, const Address &addr)
 	   firstRxTime = Simulator::Now().GetSeconds();
    lastRxTime = Simulator::Now().GetSeconds();
    bytesTotal += pkt->GetSize();
-   std::cout<<"byt = "<<bytesTotal<<std::endl;
 }
 
 int
