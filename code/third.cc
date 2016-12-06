@@ -38,6 +38,18 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("ThirdScriptExample");
 
+double firstRxTime = -1.0, lastRxTime;
+uint32_t bytesTotal = 0;
+
+void SinkRxTrace(Ptr<const Packet> pkt, const Address &addr)
+{
+   if (firstRxTime < 0)
+	   firstRxTime = Simulator::Now().GetSeconds();
+   lastRxTime = Simulator::Now().GetSeconds();
+   bytesTotal += pkt->GetSize();
+   std::cout<<"byt = "<<bytesTotal<<std::endl;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -177,9 +189,11 @@ main (int argc, char *argv[])
       pointToPoint.EnablePcapAll ("third");
       phy.EnablePcap ("third", apDevices.Get (0));
       csma.EnablePcap ("third", csmaDevices.Get (0), true);
+      Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::PacketSink/Rx", MakeCallback(&SinkRxTrace));
     }
 
   Simulator::Run ();
+  std::cout << "Avg throughput = " << bytesTotal*8/(lastRxTime-firstRxTime)/1024 << " kbits/sec" << std::endl;
   Simulator::Destroy ();
   return 0;
 }
