@@ -169,9 +169,11 @@ main (int argc, char *argv[])
   ApplicationContainer serverApps = echoServer.Install (csmaNodes.Get (nCsma));
   serverApps.Start (Seconds (1.0));
   serverApps.Stop (Seconds (10.0));
+  PacketSinkHelper sink( "ns3::UdpSocketFactory", InetSocketAddress(csmaInterfaces.GetAddress(nCsma), 9));
+  sink.Install(csmaNodes.Get(nCsma));
 
   UdpEchoClientHelper echoClient (csmaInterfaces.GetAddress (nCsma), 9);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (5));
   echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
   echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
 
