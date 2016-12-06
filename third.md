@@ -1,4 +1,3 @@
-# การเรียก CallBack
 ตัวอย่าง [third.cc](src/third.cc)
 ## คำสั่ง run simulator
 ```bash
@@ -46,6 +45,12 @@ songrit$ grep -n "Nodes.Create" third.cc
 
 เส้นทางข้อมูลดูได้จาก `// Default Network Topology` n7->n0->n1->n4
 
+## คำสั่ง save ไฟล์เป็น pcap
+```bash
+./waf --run "third --tracing=true"
+```
+
+# การเรียก CallBack
+จากตัวอย่างด้านบน โหนดที่มีเหตุการณ์ส่งออกได้แก่ n7 n0 และ n1 
 # Resources
 * [The list of all trace sources : https://www.nsnam.org/doxygen/_trace_source_list.html](https://www.nsnam.org/doxygen/_trace_source_list.html)
-*
