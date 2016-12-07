@@ -32,13 +32,24 @@ namespace ndn{
  void
  InterestTrace(shared_ptr< const Interest > interest, Ptr< App > app, shared_ptr< Face > face)
  {
-  std::cout<<"OK : "<< interest->getName()<<std::endl;
+	   std::cout<<"Interest APP ID : "<<app->GetId() <<"\t Node :" <<app->GetNode()<<std::endl;
+     std::cout<<"OK : "<< interest->getName()<<std::endl;
+
+ }
+
+ void
+ TransmittedTrace (shared_ptr< const Interest > interest, Ptr< App > app, shared_ptr< Face > face)
+
+ {
+  std::cout<<"Transmit APP ID : "<<app->GetId() <<"\t Node :" <<app->GetNode()<<std::endl;
+  std::cout<<"Interest : "<< interest->getName()<<std::endl;
 
  }
 
  void
  DataTrace (shared_ptr< const Data > data, Ptr< App > app, shared_ptr< Face > face)
  {
+	std::cout<<"Data APP ID : "<<app->GetId() <<"\t Node :" <<app->GetNode()<<std::endl;
   std::cout<<"DATA : "<<data->getFullName()<<std::endl;
  }
 }
@@ -116,8 +127,10 @@ main(int argc, char* argv[])
 
   if (tracing == true)
     {
-      Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::ndn::App/ReceivedInterests", MakeCallback(&ndn::InterestTrace));
-      // Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::ndn::App/ReceivedDatas", MakeCallback(&ndn::DataTrace));
+      Config::ConnectWithoutContext("/NodeList/2/ApplicationList/*/$ns3::ndn::App/ReceivedInterests", MakeCallback(&ndn::InterestTrace));
+//      Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::ndn::App/ReceivedDatas", MakeCallback(&ndn::DataTrace));
+      Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::ndn::App/TransmittedInterests", MakeCallback(&ndn::TransmittedTrace));
+
     }
 
   Simulator::Run();
