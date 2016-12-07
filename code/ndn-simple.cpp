@@ -23,8 +23,25 @@
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/ndnSIM-module.h"
+#include "apps/ndn-app.hpp"
 
 namespace ns3 {
+
+namespace ndn{
+
+ void
+ InterestTrace(shared_ptr< const Interest > interest, Ptr< App > app, shared_ptr< Face > face)
+ {
+  std::cout<<"OK : "<< interest->getName()<<std::endl;
+
+ }
+
+ void
+ DataTrace (shared_ptr< const Data > data, Ptr< App > app, shared_ptr< Face > face)
+ {
+  std::cout<<"DATA : "<<data->getFullName()<<std::endl;
+ }
+}
 
 /**
  * This scenario simulates a very simple network topology:
@@ -46,9 +63,12 @@ namespace ns3 {
  *     NS_LOG=ndn.Consumer:ndn.Producer ./waf --run=ndn-simple
  */
 
+
 int
 main(int argc, char* argv[])
 {
+  bool tracing = false;
+
   // setting default parameters for PointToPoint links and channels
   Config::SetDefault("ns3::PointToPointNetDevice::DataRate", StringValue("1Mbps"));
   Config::SetDefault("ns3::PointToPointChannel::Delay", StringValue("10ms"));
@@ -56,6 +76,7 @@ main(int argc, char* argv[])
 
   // Read optional command-line parameters (e.g., enable visualizer with ./waf --run=<> --visualize
   CommandLine cmd;
+  cmd.AddValue ("tracing", "Enable pcap tracing", tracing);
   cmd.Parse(argc, argv);
 
   // Creating nodes
@@ -93,11 +114,18 @@ main(int argc, char* argv[])
 
   Simulator::Stop(Seconds(20.0));
 
+  if (tracing == true)
+    {
+      Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::ndn::App/ReceivedInterests", MakeCallback(&ndn::InterestTrace));
+      // Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::ndn::App/ReceivedDatas", MakeCallback(&ndn::DataTrace));
+    }
+
   Simulator::Run();
   Simulator::Destroy();
 
   return 0;
 }
+
 
 } // namespace ns3
 
