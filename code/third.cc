@@ -38,12 +38,18 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("ThirdScriptExample");
 
+void
+APTx (Ptr< const Packet > p, Ptr< Ipv4 > ipv4, uint32_t interface)
+{
+ std::cout << "Interface " << interface <<"\t IP :" << ipv4->GetAddress(interface,0)<<"\t Pkt Size :" << p->GetSize( )<< std::endl;
+}
+
 int
 main (int argc, char *argv[])
 {
   bool verbose = true;
   uint32_t nCsma = 3;
-  uint32_t nWifi = 3;
+  uint32_t nWifi = 2;
   bool tracing = false;
 
   CommandLine cmd;
@@ -177,6 +183,8 @@ main (int argc, char *argv[])
       pointToPoint.EnablePcapAll ("third");
       phy.EnablePcap ("third", apDevices.Get (0));
       csma.EnablePcap ("third", csmaDevices.Get (0), true);
+      Config::ConnectWithoutContext ("/NodeList/0/$ns3::Ipv4L3Protocol/Tx", MakeCallback (&APTx));
+
     }
 
   Simulator::Run ();
