@@ -17,41 +17,13 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-// ndn-tree-cs-tracers.cpp
+// ndn-tree-app-delay-tracer.cpp
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/ndnSIM-module.h"
-#include "apps/ndn-app.hpp"
 
 namespace ns3 {
-
-  namespace ndn{
-
-   void
-   InterestTrace(shared_ptr< const Interest > interest, Ptr< App > app, shared_ptr< Face > face)
-   {
-	   std::cout<<"Interest APP ID : "<<app->GetId() <<"\t Node :" <<app->GetNode()<<std::endl;
-       std::cout<<"OK : "<< interest->getName()<<std::endl;
-
-   }
-
-   void
-   TransmittedTrace (shared_ptr< const Interest > interest, Ptr< App > app, shared_ptr< Face > face)
-
-   {
-    std::cout<<"Transmit APP ID : "<<app->GetId() <<"\t Node :" <<app->GetNode()<<std::endl;
-    std::cout<<"Interest : "<< interest->getName()<<std::endl;
-
-   }
-
-   void
-   DataTrace (shared_ptr< const Data > data, Ptr< App > app, shared_ptr< Face > face)
-   {
-	std::cout<<"Data APP ID : "<<app->GetId() <<"\t Node :" <<app->GetNode()<<std::endl;
-    std::cout<<"DATA : "<<data->getFullName()<<std::endl;
-   }
-  }
 
 /**
  * This scenario simulates a tree topology (using topology reader module)
@@ -82,26 +54,21 @@ namespace ns3 {
  *
  * To run scenario and see what is happening, use the following command:
  *
- *     ./waf --run=ndn-tree-cs-tracers
+ *     ./waf --run=ndn-tree-app-delay-tracer
  */
 
 int
 main(int argc, char* argv[])
 {
-  bool tracing = false;
-
   CommandLine cmd;
-  cmd.AddValue ("tracing", "Enable pcap tracing", tracing);
   cmd.Parse(argc, argv);
 
   AnnotatedTopologyReader topologyReader("", 1);
   topologyReader.SetFileName("src/ndnSIM/examples/topologies/topo-tree.txt");
   topologyReader.Read();
 
-  // Install NDN stack on all nodes
+  // Install CCNx stack on all nodes
   ndn::StackHelper ndnHelper;
-  ndnHelper.SetOldContentStore("ns3::ndn::cs::Lru", "MaxSize",
-                               "100"); // default ContentStore parameters
   ndnHelper.InstallAll();
 
   // Choosing forwarding strategy
@@ -116,36 +83,19 @@ main(int argc, char* argv[])
                             Names::Find<Node>("leaf-3"), Names::Find<Node>("leaf-4")};
   Ptr<Node> producer = Names::Find<Node>("root");
 
-//  for (int i = 0; i < 4; i++) {
-//    ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
-//    consumerHelper.SetAttribute("Frequency", StringValue("10")); // 100 interests a second
-//
-//    // Each consumer will express the same data /root/<seq-no>
-//    consumerHelper.SetPrefix("/root");
-//    ApplicationContainer app = consumerHelper.Install(consumers[i]);
-//    app.Start(Seconds(0.01 * i));
-//  }
-
-  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
-  consumerHelper.SetAttribute("Frequency", StringValue("1")); // 100 interests a second
+  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerBatches");
   consumerHelper.SetPrefix("/root");
-  ApplicationContainer app = consumerHelper.Install(consumers[0]);
-  app.Start(Seconds(0.01));
+  consumerHelper.SetAttribute("Batches", StringValue("1s 1 10s 1"));
+  consumerHelper.Install(consumers[0]);
 
-  ndn::AppHelper consumerHelper1("ns3::ndn::ConsumerCbr");
-  consumerHelper1.SetAttribute("Frequency", StringValue("1")); // 100 interests a second
-  consumerHelper1.SetPrefix("/root/rtr-2/leaf-4");
-  ApplicationContainer app1 = consumerHelper1.Install(consumers[1]);
-  app1.Start(Seconds(0.02));
+  consumerHelper.SetAttribute("Batches", StringValue("11s 1"));
+  consumerHelper.Install(consumers[1]);
 
-  ndn::AppHelper consumerHelper2("ns3::ndn::ConsumerBatches");
-  consumerHelper2.SetPrefix("/root/rtr-2");
-  consumerHelper2.SetAttribute("Batches", StringValue("1s 1 10s 1"));
-  consumerHelper2.Install(consumers[2]);
+  consumerHelper.SetAttribute("Batches", StringValue("11s 1"));
+  consumerHelper.Install(consumers[2]);
 
-  consumerHelper2.SetAttribute("Batches", StringValue("11s 1"));
-  consumerHelper2.SetPrefix("/root/rtr-1");
-  consumerHelper2.Install(consumers[3]);
+  consumerHelper.SetAttribute("Batches", StringValue("5s 2 6s 3"));
+  consumerHelper.Install(consumers[3]);
 
   ndn::AppHelper producerHelper("ns3::ndn::Producer");
   producerHelper.SetAttribute("PayloadSize", StringValue("1024"));
@@ -154,33 +104,15 @@ main(int argc, char* argv[])
   // install producer that will satisfy Interests in /root namespace
   ndnGlobalRoutingHelper.AddOrigins("/root", producer);
   producerHelper.SetPrefix("/root");
-  producerHelper.Install(producer);
-
-  ndn::AppHelper producerHelper2("ns3::ndn::Producer");
-  producerHelper2.SetAttribute("PayloadSize", StringValue("1024"));
-
-  // Register /root prefix with global routing controller and
-  // install producer that will satisfy Interests in /root namespace
-  Ptr<Node> producer2 = Names::Find<Node>("leaf-2");
-  ndnGlobalRoutingHelper.AddOrigins("/root", producer2);
-  producerHelper2.SetPrefix("leaf-4");
-  producerHelper2.Install(producer2);
+  producerHelper.Install(producer).Start(Seconds(9));
 
   // Calculate and install FIBs
   ndn::GlobalRoutingHelper::CalculateRoutes();
 
-  Simulator::Stop(Seconds(2.0));
+  Simulator::Stop(Seconds(20.0));
 
-  if (tracing == true)
-    {
-      Config::ConnectWithoutContext("/NodeList/6/ApplicationList/*/$ns3::ndn::App/ReceivedInterests", MakeCallback(&ndn::InterestTrace));
-//    Config::ConnectWithoutContext("/NodeList/3/ApplicationList/*/$ns3::ndn::App/ReceivedDatas", MakeCallback(&ndn::DataTrace));
-      Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::ndn::App/TransmittedInterests", MakeCallback(&ndn::TransmittedTrace));
-      Config::ConnectWithoutContext("/NodeList/1/ApplicationList/*/$ns3::ndn::App/TransmittedInterests", MakeCallback(&ndn::TransmittedTrace));
-    }
-
-  ndn::CsTracer::InstallAll("/Users/songrit/ns/ndnSIM/ns-3/src/ndnSIM/cs-trace.txt", Seconds(1));
   ndn::AppDelayTracer::InstallAll("/Users/songrit/ns/ndnSIM/ns-3/src/ndnSIM/app-delays-trace.txt");
+//  ndn::CsTracer::InstallAll("/Users/songrit/ns/ndnSIM/ns-3/src/ndnSIM/cs-trace.txt", Seconds(1));
 
   Simulator::Run();
   Simulator::Destroy();
